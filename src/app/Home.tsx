@@ -10,7 +10,7 @@ import {
   fetchNewsFromNewsAPI,
   fetchNewsFromNYTAPI,
 } from "../api/newsAPI";
-import { useState } from "react";
+// import { useState } from "react";
 // import { fetchArticles } from "../api/newsAPI";
 interface Article {
   title?: string;
@@ -29,8 +29,8 @@ interface Article {
 const Home = () => {
   const dispatch = useAppDispatch();
   // const filters = useAppSelector((state) => state.articles.filters);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filters, setFilters] = useState<{ [key: string]: string }>({});
+  // const [searchQuery, setSearchQuery] = useState<string>("");
+  // const [filters, setFilters] = useState<{ [key: string]: string }>({});
 
   const handleSearch = (searchQuery: string) => {
     dispatch(setQuery(searchQuery));
