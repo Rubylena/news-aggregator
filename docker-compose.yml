@@ -1,0 +1,12 @@
+version: '4.38'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production

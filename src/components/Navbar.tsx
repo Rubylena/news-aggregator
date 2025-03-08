@@ -3,23 +3,23 @@ import { Link } from "react-router";
 import SearchBar from "./SearchBar";
 import Filters from "./Filters";
 import { useAppDispatch } from "../store/hooks/hooks";
-import { setFilters } from "../store/reducers/articleSlice";
-// import { fetchArticles } from "../api/newsAPI";
+import { setFilters, setQuery } from "../store/reducers/articleSlice";
 
 const Navbar = ({ onSearch }: { onSearch: (query: string) => void }) => {
-    const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
-    // const query = useAppSelector((state) => state.articles.query);
+  const handleFilterChange = (newFilters: {
+    category: string;
+    date: string;
+    source: string;
+  }) => {
+    dispatch(setFilters(newFilters));
+  };
 
-    const handleFilterChange = (newFilters: {
-      category: string;
-      date: string;
-      source: string;
-    }) => {
-      dispatch(setFilters(newFilters));
-      // Fetch articles based on the updated filters
-      // fetchArticles(query, newFilters);
-    };
+  const handleSearch = (query: string) => {
+    dispatch(setQuery(query));
+    onSearch(query);
+  };
 
   return (
     <nav className="bg-blue-600 p-4 fixed z-30 w-full">
@@ -27,9 +27,7 @@ const Navbar = ({ onSearch }: { onSearch: (query: string) => void }) => {
         <Link to="/" className="text-white text-2xl font-bold">
           News Aggregator
         </Link>
-
-        <SearchBar onSearch={onSearch} />
-
+        <SearchBar onSearch={handleSearch} />
         <Filters onFilterChange={handleFilterChange} />
       </div>
     </nav>
