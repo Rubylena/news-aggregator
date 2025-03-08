@@ -3,15 +3,14 @@ import ArticleCard from "../components/ArticleCard";
 import Footer from "../components/Footer";
 import { setQuery } from "../store/reducers/articleSlice";
 import { Helmet } from "react-helmet";
-import { useAppDispatch } from "../store/hooks/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks/hooks";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   fetchNewsFromGuardianAPI,
   fetchNewsFromNewsAPI,
   fetchNewsFromNYTAPI,
 } from "../api/newsAPI";
-// import { useState } from "react";
-// import { fetchArticles } from "../api/newsAPI";
+
 interface Article {
   title?: string;
   description?: string;
@@ -28,62 +27,56 @@ interface Article {
 
 const Home = () => {
   const dispatch = useAppDispatch();
-  // const filters = useAppSelector((state) => state.articles.filters);
-  // const [searchQuery, setSearchQuery] = useState<string>("");
-  // const [filters, setFilters] = useState<{ [key: string]: string }>({});
+  const filters = useAppSelector((state) => state.articles.filters);
+  const query = useAppSelector((state) => state.articles.query);
 
   const handleSearch = (searchQuery: string) => {
     dispatch(setQuery(searchQuery));
-    // Fetch articles based on search query and filters
-    // fetchArticles(searchQuery, filters);
   };
 
-  // NewsAPI Data Fetching with Infinite Scroll
-  const {
-    data: newsData,
-    isLoading,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["newsAPI"],
-    initialPageParam: 1,
-    queryFn: fetchNewsFromNewsAPI,
-    getNextPageParam: (lastPage) => lastPage.page + 1,
-  });
+  // const handleFilterChange = (newFilters: {
+  //   category: string;
+  //   date: string;
+  //   source: string;
+  // }) => {
+  //   dispatch(setFilters(newFilters));
+  // };
+  console.log(filters.category);
+  const fetchArticles = async ({ pageParam = 1 }) => {
+    const [newsAPI, guardianAPI, nytAPI] = await Promise.all([
+      fetchNewsFromNewsAPI({
+        pageParam,
+        q: query,
+        country: filters.category || "us",
+      }),
+      fetchNewsFromGuardianAPI({
+        pageParam,
+        q: query,
+        from: filters.date || "2025-01-01",
+      }),
+      fetchNewsFromNYTAPI({ pageParam, q: query }),
+    ]);
 
-  // Guardian Data Fetching with Infinite Scroll
-  const {
-    data: guardianData,
-    isLoading: isLoadingGuardian,
-    isError: isErrorGuardian,
-    fetchNextPage: fetchNextPageGuardian,
-    hasNextPage: hasNextPageGuardian,
-  } = useInfiniteQuery({
-    queryKey: ["guardianAPI"],
-    initialPageParam: 1,
-    queryFn: fetchNewsFromGuardianAPI,
-    getNextPageParam: (lastPage) => lastPage.pages - lastPage.currentPage,
-  });
+    return {
+      newsAPI,
+      guardianAPI,
+      nytAPI,
+    };
+  };
 
-  // New York Times Data Fetching with Infinite Scroll
-  const {
-    data: nytData,
-    isLoading: isLoadingNYT,
-    isError: isErrorNYT,
-    fetchNextPage: fetchNextPageNYT,
-    hasNextPage: hasNextPageNYT,
-  } = useInfiniteQuery({
-    queryKey: ["nytAPI"],
-    initialPageParam: 0,
-    queryFn: fetchNewsFromNYTAPI,
-    getNextPageParam: (lastPage) => lastPage?.page! + 1,
-  });
+  const { data, isLoading, isError, fetchNextPage, hasNextPage } =
+    useInfiniteQuery({
+      queryKey: ["articles", query, filters],
+      initialPageParam: 1,
+      queryFn: fetchArticles,
+      getNextPageParam: (lastPage) => lastPage.guardianAPI.currentPage + 1,
+      // getNextPageParam: (lastPage) => lastPage.newsAPI.page + 1,
+    });
 
   const mergedData: Article[] = [
-    ...(newsData?.pages.flatMap((page) => page?.articles) || []),
-    ...(guardianData?.pages.flatMap((page) => page?.results) || []),
-    ...(nytData?.pages.flatMap((page) => page?.docs) || []),
+    ...(data?.pages.flatMap((page) => page.newsAPI.articles) || []),
+    ...(data?.pages.flatMap((page) => page.guardianAPI.results) || []),
+    ...(data?.pages.flatMap((page) => page.nytAPI?.docs) || []),
   ] as Article[];
 
   const loaderArray = Array.from({ length: 10 }, () => ({}));
@@ -105,12 +98,12 @@ const Home = () => {
       </Helmet>
       <div
         className={`${
-          isError || isErrorGuardian || isErrorNYT ? "h-screen" : "lg:h-screen"
+          isError ? "h-screen" : "lg:h-screen"
         } flex flex-col justify-between`}
       >
         <Navbar onSearch={handleSearch} />
         <div className="p-4 overflow-y-auto mt-24">
-          {isLoading || isLoadingGuardian || isLoadingNYT ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4">
               {loaderArray.map((_, index) => (
                 <div
@@ -133,7 +126,7 @@ const Home = () => {
                 </div>
               ))}
             </div>
-          ) : isError || isErrorGuardian || isErrorNYT ? (
+          ) : isError ? (
             <div className="text-center h-96 flex justify-center items-center">
               Error fetching data
             </div>
@@ -156,19 +149,7 @@ const Home = () => {
 
               <div className="text-center">
                 {hasNextPage && (
-                  <button onClick={() => fetchNextPage()}>
-                    Load More (NewsAPI)
-                  </button>
-                )}
-                {hasNextPageGuardian && (
-                  <button onClick={() => fetchNextPageGuardian()}>
-                    Load More (Guardian)
-                  </button>
-                )}
-                {hasNextPageNYT && (
-                  <button onClick={() => fetchNextPageNYT()}>
-                    Load More (NYT)
-                  </button>
+                  <button onClick={() => fetchNextPage()}>Load More</button>
                 )}
               </div>
             </>

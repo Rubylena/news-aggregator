@@ -6,7 +6,7 @@ interface ArticleState {
 }
 
 const initialState: ArticleState = {
-  query: "",
+  query: "debate",
   filters: { date: "", category: "", source: "" },
 };
 
