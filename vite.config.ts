@@ -13,7 +13,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/vitest.setup.ts",
     css: true,
-    testTimeout: 5000,
     reporters: ["verbose"],
   },
   server: {

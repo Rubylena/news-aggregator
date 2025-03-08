@@ -1,7 +1,6 @@
 import Navbar from "../components/Navbar";
-import ArticleCard from "../components/ArticleCard";
 import Footer from "../components/Footer";
-import { setQuery } from "../store/reducers/articleSlice";
+import { setQuery, setResultFilters } from "../store/reducers/articleSlice";
 import { Helmet } from "react-helmet";
 import { useAppDispatch, useAppSelector } from "../store/hooks/hooks";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -10,51 +9,44 @@ import {
   fetchNewsFromNewsAPI,
   fetchNewsFromNYTAPI,
 } from "../api/newsAPI";
-
-interface Article {
-  title?: string;
-  description?: string;
-  url?: string;
-  webTitle?: string;
-  webUrl?: string;
-  id?: string;
-  headline?: {
-    main: string;
-  };
-  abstract?: string;
-  web_url: string;
-}
+import { Article } from "../utils/interface";
+import Filters from "../components/Filters";
+import { useCallback, useMemo, useState } from "react";
+import Loader from "../components/Loader";
+import Articles from "../components/Articles";
+import BackToTop from "../components/BackToTop";
 
 const Home = () => {
   const dispatch = useAppDispatch();
   const filters = useAppSelector((state) => state.articles.filters);
   const query = useAppSelector((state) => state.articles.query);
+  const resultFilters = useAppSelector((state) => state.articles.resultFilters);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const handleSearch = (searchQuery: string) => {
     dispatch(setQuery(searchQuery));
   };
 
-  // const handleFilterChange = (newFilters: {
-  //   category: string;
-  //   date: string;
-  //   source: string;
-  // }) => {
-  //   dispatch(setFilters(newFilters));
-  // };
-  console.log(filters.category);
   const fetchArticles = async ({ pageParam = 1 }) => {
     const [newsAPI, guardianAPI, nytAPI] = await Promise.all([
       fetchNewsFromNewsAPI({
         pageParam,
         q: query,
-        country: filters.category || "us",
+        category: filters.category,
+        sources: filters.source,
       }),
       fetchNewsFromGuardianAPI({
         pageParam,
         q: query,
-        from: filters.date || "2025-01-01",
+        author: filters.person,
       }),
-      fetchNewsFromNYTAPI({ pageParam, q: query }),
+      fetchNewsFromNYTAPI({
+        pageParam,
+        q: query,
+        news_desk: filters.category,
+        source: filters.source,
+        persons: filters.person,
+      }),
     ]);
 
     return {
@@ -64,22 +56,87 @@ const Home = () => {
     };
   };
 
-  const { data, isLoading, isError, fetchNextPage, hasNextPage } =
-    useInfiniteQuery({
-      queryKey: ["articles", query, filters],
-      initialPageParam: 1,
-      queryFn: fetchArticles,
-      getNextPageParam: (lastPage) => lastPage.guardianAPI.currentPage + 1,
-      // getNextPageParam: (lastPage) => lastPage.newsAPI.page + 1,
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["articles", query, filters],
+    initialPageParam: 1,
+    queryFn: fetchArticles,
+    retry: 1,
+    retryDelay: 4000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    //   console.log(lastPage);
+    //   lastPage;
+    // },
+    getNextPageParam: (lastPage, allPages) => {
+      const calculatePages = (totalResults: number, pageSize: number) =>
+        Math.ceil(totalResults / pageSize);
+
+      const currentPage = allPages.length;
+      const newsAPIPages = calculatePages(lastPage.newsAPI.totalResults, 10);
+      const guardianAPIPages = lastPage.guardianAPI.pages;
+      const nytAPIPages = calculatePages(lastPage.nytAPI.meta.hits, 10);
+
+      const minPages = Math.min(newsAPIPages, guardianAPIPages, nytAPIPages);
+
+      if (currentPage >= minPages) {
+        return 1;
+      }
+
+      return currentPage + 1;
+    },
+  });
+
+  const mergedData: Article[] = useMemo(
+    () =>
+      [
+        ...(data?.pages.flatMap((page) => page.newsAPI.articles) || []),
+        ...(data?.pages.flatMap((page) => page.guardianAPI.results) || []),
+        ...(data?.pages.flatMap((page) => page.nytAPI.docs) || []),
+      ] as Article[],
+    [data]
+  );
+
+  const filteredData = useMemo(() => {
+    setIsFiltering(true);
+    const result = mergedData.filter((article) => {
+      const matchesDate = resultFilters.date
+        ? article?.publishedAt?.includes(resultFilters.date) ||
+          article?.webPublicationDate?.includes(resultFilters.date) ||
+          article?.pub_date?.includes(resultFilters.date)
+        : true;
+      const matchesCategory = resultFilters.category
+        ? article?.news_desk?.includes(resultFilters.category) ||
+          article?.pillarName?.includes(resultFilters.category)
+        : true;
+      const matchesSource = resultFilters.source
+        ? typeof article.source === "string"
+          ? article.source.includes(resultFilters.source)
+          : article.source?.name?.includes(resultFilters.source)
+        : true;
+      return matchesDate && matchesCategory && matchesSource;
     });
+    setIsFiltering(false);
+    return result;
+  }, [mergedData, resultFilters]);
 
-  const mergedData: Article[] = [
-    ...(data?.pages.flatMap((page) => page.newsAPI.articles) || []),
-    ...(data?.pages.flatMap((page) => page.guardianAPI.results) || []),
-    ...(data?.pages.flatMap((page) => page.nytAPI?.docs) || []),
-  ] as Article[];
-
-  const loaderArray = Array.from({ length: 10 }, () => ({}));
+  const handleFilterChange = useCallback(
+    (newFilters: {
+      category: string;
+      date: string;
+      source: string;
+      person: string;
+    }) => {
+      dispatch(setResultFilters(newFilters));
+    },
+    [dispatch]
+  );
 
   return (
     <>
@@ -94,68 +151,50 @@ const Home = () => {
           property="og:description"
           content="Get the latest news from your preferred sources and categories in one place."
         />
-        <meta property="og:url" content="https://yourwebsite.com" />
+        <meta
+          property="og:url"
+          content="https://news-aggregator-grace.netlify.app"
+        />
       </Helmet>
       <div
         className={`${
-          isError ? "h-screen" : "lg:h-screen"
-        } flex flex-col justify-between`}
+          isError || filteredData?.length === 0 ? "h-screen" : ""
+        } flex flex-col justify-between bg-gray-200`}
       >
         <Navbar onSearch={handleSearch} />
-        <div className="p-4 overflow-y-auto mt-24">
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4">
-              {loaderArray.map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-white shadow-md drop-shadow-md border-t border-gray-200 rounded-lg p-4 mb-4 hover:shadow-lg hover:scale-105 transition-all duration-200"
-                >
-                  <div className="flex animate-pulse space-x-4">
-                    <div className="size-10 rounded-full bg-gray-200"></div>
-                    <div className="flex-1 space-y-6 py-1">
-                      <div className="h-2 rounded bg-gray-200"></div>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="col-span-2 h-2 rounded bg-gray-200"></div>
-                          <div className="col-span-1 h-2 rounded bg-gray-200"></div>
-                        </div>
-                        <div className="h-2 rounded bg-gray-200"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="p-4 sm:mt-32 lg:mt-28 lg:mx-20">
+          {isLoading || isFiltering ? (
+            <Loader />
           ) : isError ? (
-            <div className="text-center h-96 flex justify-center items-center">
-              Error fetching data
+            <div className="text-center lg:h-88 w-full flex justify-center items-center border">
+              <img
+                src="/assets/img/error.webp"
+                alt="Error fetching data"
+                className="object-cover h-full"
+              />
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4">
-                {mergedData?.map((article, index) => (
-                  <ArticleCard
-                    key={index}
-                    title={
-                      article.title ||
-                      article.webTitle ||
-                      article.headline?.main
-                    }
-                    description={article.description || article.abstract}
-                    url={article.url || article.webUrl || article.web_url}
-                  />
-                ))}
-              </div>
+              <Filters type="result" onFilterChange={handleFilterChange} />
 
-              <div className="text-center">
-                {hasNextPage && (
-                  <button onClick={() => fetchNextPage()}>Load More</button>
-                )}
-              </div>
+              {filteredData?.length === 0 ? (
+                <div className="text-center lg:h-88 flex justify-center items-center font-medium">
+                  No data found based on filters selected
+                </div>
+              ) : (
+                <Articles
+                  articles={filteredData}
+                  fetchNextPage={fetchNextPage}
+                  hasNextPage={hasNextPage}
+                  isFetchingNextPage={isFetchingNextPage}
+                  resultFilters={resultFilters}
+                />
+              )}
             </>
           )}
         </div>
         <Footer />
+        <BackToTop />
       </div>
     </>
   );

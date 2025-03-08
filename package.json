@@ -11,8 +11,8 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
-    "docker:build": "docker build -t new-app . --no-cache",
-    "docker:run": "docker run -dp 3000:5173 new-app"
+    "docker:build": "docker build -t news-aggregator-app . --no-cache",
+    "docker:run": "docker run -dp 3000:5173 news-aggregator-app"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

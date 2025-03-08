@@ -3,4 +3,4 @@ Disallow: /private/
 Disallow: /login/
 Allow: /
 
-Sitemap: https://yourwebsite.com/sitemap.xml
+Sitemap: https://news-aggregator-grace.netlify.app/sitemap.xml
