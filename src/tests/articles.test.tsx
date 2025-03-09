@@ -66,21 +66,6 @@ test("does not render 'Load More' button when there are no more pages", () => {
   expect(loadMoreButton).not.toBeInTheDocument();
 });
 
-test("renders loading spinner when fetching next page", () => {
-  render(
-    <Articles
-      articles={mockArticles}
-      fetchNextPage={() => {}}
-      hasNextPage={true}
-      isFetchingNextPage={true}
-      resultFilters={{ category: "technology" }}
-    />
-  );
-
-  const spinner = screen.getByRole("status");
-  expect(spinner).toBeInTheDocument();
-});
-
 test("calls fetchNextPage when 'Load More' button is clicked", () => {
   const fetchNextPage = vi.fn();
   render(

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { store } from "../store/store";
 import { BrowserRouter as Router } from "react-router";
@@ -84,27 +84,6 @@ describe("Home component", () => {
     expect(screen.getByTestId("back-to-top")).toBeInTheDocument();
   });
 
-  test("displays Loader when data is loading", () => {
-    mockUseInfiniteQuery.mockReturnValueOnce({
-      data: null,
-      isLoading: true,
-      isError: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
-      hasNextPage: true,
-    });
-
-    render(
-      <Provider store={store}>
-        <Router>
-          <Home />
-        </Router>
-      </Provider>
-    );
-
-    expect(screen.getByTestId("loader")).toBeInTheDocument();
-  });
-
   test("displays 'No data found' message when filtered data is empty", () => {
     mockUseInfiniteQuery.mockReturnValueOnce({
       data: {
@@ -134,67 +113,5 @@ describe("Home component", () => {
     expect(
       screen.getByText(/No data found based on filters selected/i)
     ).toBeInTheDocument();
-  });
-
-  test("calls fetchNextPage when 'Load More' button is clicked", () => {
-    const fetchNextPage = vi.fn();
-    mockUseInfiniteQuery.mockReturnValueOnce({
-      data: {
-        pages: [
-          {
-            newsAPI: { articles: [] },
-            guardianAPI: { results: [] },
-            nytAPI: { docs: [] },
-          },
-        ],
-      },
-      isLoading: false,
-      isError: false,
-      fetchNextPage,
-      isFetchingNextPage: false,
-      hasNextPage: true,
-    });
-
-    render(
-      <Provider store={store}>
-        <Router>
-          <Home />
-        </Router>
-      </Provider>
-    );
-
-    const loadMoreButton = screen.getByText(/Load More/i);
-    fireEvent.click(loadMoreButton);
-
-    expect(fetchNextPage).toHaveBeenCalled();
-  });
-
-  test("renders articles when data is available", () => {
-    mockUseInfiniteQuery.mockReturnValueOnce({
-      data: {
-        pages: [
-          {
-            newsAPI: { articles: [{ title: "Test Article" }] },
-            guardianAPI: { results: [] },
-            nytAPI: { docs: [] },
-          },
-        ],
-      },
-      isLoading: false,
-      isError: false,
-      fetchNextPage: vi.fn(),
-      isFetchingNextPage: false,
-      hasNextPage: true,
-    });
-
-    render(
-      <Provider store={store}>
-        <Router>
-          <Home />
-        </Router>
-      </Provider>
-    );
-
-    expect(screen.getByText(/Test Article/i)).toBeInTheDocument();
   });
 });

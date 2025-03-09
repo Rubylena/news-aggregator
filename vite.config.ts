@@ -14,6 +14,9 @@ export default defineConfig({
     setupFiles: "./src/vitest.setup.ts",
     css: true,
     reporters: ["verbose"],
+    coverage: {
+      reporter: ["text", "json", "html"],
+    },
   },
   server: {
     host: true,

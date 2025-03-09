@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import ArticleCard from "./ArticleCard";
 import { ArticlesProps } from "../utils/interface";
 
@@ -7,10 +7,36 @@ const Articles: React.FC<ArticlesProps> = ({
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
-  resultFilters
+  resultFilters,
 }) => {
-    const hasResultFilters =
-      resultFilters && Object.values(resultFilters).some((value) => value);
+  const hasResultFilters =
+    resultFilters && Object.values(resultFilters).some((value) => value);
+
+  const loadMoreRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mt-4">
@@ -26,9 +52,9 @@ const Articles: React.FC<ArticlesProps> = ({
       </div>
 
       <div className="text-center mt-4">
-        {hasNextPage && !isFetchingNextPage && hasResultFilters && (
+        {hasNextPage && !isFetchingNextPage && !hasResultFilters && (
           <button
-            onClick={fetchNextPage}
+            ref={loadMoreRef}
             className="font-medium cursor-pointer text-blue-600 hover:underline"
           >
             Load More...

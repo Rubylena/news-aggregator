@@ -67,7 +67,7 @@ const Home = () => {
     queryKey: ["articles", query, filters],
     initialPageParam: 1,
     queryFn: fetchArticles,
-    retry: 1,
+    retry: 0,
     retryDelay: 4000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -95,12 +95,12 @@ const Home = () => {
 
   const mergedData: Article[] = useMemo(
     () =>
-      [
-        ...(data?.pages.flatMap((page) => page.newsAPI.articles) || []),
-        ...(data?.pages.flatMap((page) => page.guardianAPI.results) || []),
-        ...(data?.pages.flatMap((page) => page.nytAPI.docs) || []),
-      ] as Article[],
-    [data]
+      (data?.pages.flatMap((page) => [
+        ...page.newsAPI.articles,
+        ...page.guardianAPI.results,
+        ...page.nytAPI.docs,
+      ]) || []) as Article[],
+    [data?.pages.length]
   );
 
   const filteredData = useMemo(() => {
@@ -158,7 +158,9 @@ const Home = () => {
       </Helmet>
       <div
         className={`${
-          isError || filteredData?.length === 0 ? "h-screen" : ""
+          isError || (filteredData?.length === 0 && !isLoading)
+            ? "h-screen"
+            : ""
         } flex flex-col justify-between bg-gray-200`}
       >
         <Navbar onSearch={handleSearch} />
