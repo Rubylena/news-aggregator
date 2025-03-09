@@ -1,35 +1,104 @@
-// src/tests/Filters.test.tsx
 import { render, screen, fireEvent } from "@testing-library/react";
-import Filters from "../components/Filters";
 import { vi } from "vitest";
+import Filters from "../components/Filters";
+import { BrowserRouter as Router } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+const queryClient = new QueryClient();
+import { Provider } from "react-redux";
+import { store } from "../store/store";
 
-test("triggers filter change when an option is selected", () => {
+test("renders Filters component with all fields", () => {
+  render(
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Filters onFilterChange={() => {}} type="search" />
+        </Router>
+      </QueryClientProvider>
+    </Provider>
+  );
+
+  const categorySelect = screen.getByText(/select category/i);
+  const sourceSelect = screen.getByText(/select source/i);
+  const personInput = screen.getByPlaceholderText(
+    /search for articles by author/i
+  );
+
+  expect(categorySelect).toBeInTheDocument();
+  expect(sourceSelect).toBeInTheDocument();
+  expect(personInput).toBeInTheDocument();
+});
+
+test("updates category value on change", () => {
   const onFilterChange = vi.fn();
-  render(<Filters onFilterChange={onFilterChange} />);
+  render(
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Filters onFilterChange={onFilterChange} type="search" />
+        </Router>
+      </QueryClientProvider>
+    </Provider>
+  );
 
-  const categorySelect = screen.getByRole("combobox", {
-    name: /Select Category/i,
-  });
-  fireEvent.change(categorySelect, { target: { value: "Technology" } });
-  expect(onFilterChange).toHaveBeenCalledWith({
-    category: "Technology",
-    date: "",
-    source: "",
-  });
+  const categorySelect = screen.getByText(/select category/i);
+  fireEvent.change(categorySelect, { target: { value: "technology" } });
 
-  const dateSelect = screen.getByRole("combobox", { name: /Select Date/i });
-  fireEvent.change(dateSelect, { target: { value: "today" } });
-  expect(onFilterChange).toHaveBeenCalledWith({
-    category: "",
-    date: "today",
-    source: "",
-  });
+  expect(categorySelect).toHaveValue("technology");
+});
 
-  const sourceSelect = screen.getByRole("combobox", { name: /Select Source/i });
-  fireEvent.change(sourceSelect, { target: { value: "newsapi" } });
-  expect(onFilterChange).toHaveBeenCalledWith({
-    category: "",
-    date: "",
-    source: "newsapi",
-  });
+test("updates date value on change", () => {
+  const onFilterChange = vi.fn();
+  render(
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Filters onFilterChange={onFilterChange} type="result" />
+        </Router>
+      </QueryClientProvider>
+    </Provider>
+  );
+
+  const dateInput = screen.getByPlaceholderText(/search for articles by date/i);
+  fireEvent.change(dateInput, { target: { value: "2023-10-01" } });
+
+  expect(dateInput).toHaveValue("2023-10-01");
+});
+
+test("updates source value on change", () => {
+  const onFilterChange = vi.fn();
+  render(
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Filters onFilterChange={onFilterChange} type="search" />{" "}
+        </Router>
+      </QueryClientProvider>
+    </Provider>
+  );
+
+  const sourceSelect = screen.getByText(/select source/i);
+  fireEvent.change(sourceSelect, { target: { value: "The New York Times" } });
+
+  expect(sourceSelect).toHaveValue("The New York Times");
+});
+
+test("updates person value on change", () => {
+  const onFilterChange = vi.fn();
+  render(
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Filters onFilterChange={onFilterChange} type="search" />{" "}
+        </Router>
+      </QueryClientProvider>
+    </Provider>
+  );
+
+  const personInput = screen.getByPlaceholderText(
+    /search for articles by author/i
+  );
+  fireEvent.change(personInput, { target: { value: "John Doe" } });
+
+  expect(personInput).toHaveValue("John Doe");
 });

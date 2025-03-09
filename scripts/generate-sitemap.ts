@@ -69,7 +69,7 @@ const generateSitemap = async () => {
 
   // Create the SitemapStream instance
   const sitemapStream = new SitemapStream({
-    hostname: "https://yourwebsite.com",
+    hostname: "https://news-aggregator-grace.netlify.app",
   });
   const writeStream = fs.createWriteStream(
     path.join(currentDir, "../public", "sitemap.xml")

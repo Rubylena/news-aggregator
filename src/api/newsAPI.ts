@@ -1,69 +1,30 @@
 import axios from "axios";
-
-interface NewsAPIResponse {
-  articles: {
-    title: string;
-    description: string;
-    url: string;
-    author: string;
-    urlToImage: string;
-    publishedAt: string;
-    source: {
-      id: string;
-      name: string;
-    };
-  }[];
-  page: number;
-  totalResults: number;
-}
-
-interface GuardianAPIResponse {
-  results: {
-    webTitle: string;
-    webUrl: string;
-    id: string;
-    webPublicationDate: string;
-  }[];
-  currentPage: number;
-  pages: number;
-}
-
-interface NYTAPIResponse {
-  docs: {
-    headline: {
-      main: string;
-    };
-    abstract: string;
-    web_url: string;
-    source: string;
-    multimedia: {
-      url: string;
-      subtype: "master180";
-    };
-    byline: {
-      original: string;
-    };
-    pub_date: string;
-  }[];
-  page: number;
-}
+import {
+  GuardianAPIResponse,
+  NewsAPIResourceResponse,
+  NewsAPIResponse,
+  NYTAPIResponse,
+} from "../utils/interface";
 
 export const fetchNewsFromNewsAPI = async ({
   pageParam = 1,
   q,
-  country,
+  category,
+  sources,
 }: {
   pageParam?: number;
   q?: string;
-  country?: string;
+  category?: string;
+  sources: string;
 }): Promise<NewsAPIResponse> => {
-  const response = await axios.get("https://newsapi.org/v2/top-headlines", {
+  const response = await axios.get("https://newsapi.org/v2/everything", {
     params: {
       apiKey: import.meta.env.VITE_APP_NEWS_API_KEY,
       page: pageParam,
       pageSize: 10,
       q: q,
-      country: country,
+      category: category,
+      sources: sources,
     },
   });
   return response.data;
@@ -72,31 +33,42 @@ export const fetchNewsFromNewsAPI = async ({
 export const fetchNewsFromGuardianAPI = async ({
   pageParam = 1,
   q,
-  from,
+  author
 }: {
   pageParam?: number;
   q?: string;
   from?: string;
+  author?: string;
 }): Promise<GuardianAPIResponse> => {
-  const response = await axios.get("https://content.guardianapis.com/search", {
-    params: {
+    const params: any = {
       "api-key": import.meta.env.VITE_APP_GUARDIAN_API_KEY,
       page: pageParam,
       pageSize: 10,
-      q: q,
-      "from-date": from,
-    },
-  });
-  return response.data.response;
+    };
+
+    if (q) params.q = q;
+    if (author) params.author = author;
+
+    const response = await axios.get(
+      "https://content.guardianapis.com/search",
+      { params }
+    );
+    return response.data.response;
 };
 
 export const fetchNewsFromNYTAPI = async ({
   pageParam = 1,
-  q = "election",
+  q,
+  news_desk,
+  source,
+  persons,
 }: {
   pageParam?: number;
   q?: string;
-}): Promise<NYTAPIResponse | undefined> => {
+  news_desk?: string;
+  source: string;
+  persons: string;
+}): Promise<NYTAPIResponse> => {
   const response = await axios.get(
     "https://api.nytimes.com/svc/search/v2/articlesearch.json",
     {
@@ -104,8 +76,24 @@ export const fetchNewsFromNYTAPI = async ({
         "api-key": import.meta.env.VITE_APP_NYT_API_KEY,
         page: pageParam,
         q: q,
+        pageSize: 10,
+        news_desk: news_desk,
+        source: source,
+        persons: persons,
       },
     }
   );
   return response.data.response;
+};
+
+export const fetchResourcesFromNewsAPI = async (): Promise<NewsAPIResourceResponse[]> => {
+  const response = await axios.get(
+    "https://newsapi.org/v2/top-headlines/sources",
+    {
+      params: {
+        apiKey: import.meta.env.VITE_APP_NEWS_API_KEY,
+      },
+    }
+  );
+  return response.data.sources;
 };

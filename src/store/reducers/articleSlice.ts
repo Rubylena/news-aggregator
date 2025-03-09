@@ -1,13 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-interface ArticleState {
-  query: string;
-  filters: { date: string; category: string; source: string };
-}
+import { ArticleState } from "../../utils/interface";
 
 const initialState: ArticleState = {
   query: "debate",
-  filters: { date: "", category: "", source: "" },
+  filters: { category: "", source: "", person: "" },
+  resultFilters: { date: "", category: "", source: "" },
 };
 
 const articleSlice = createSlice({
@@ -19,12 +16,18 @@ const articleSlice = createSlice({
     },
     setFilters: (
       state,
-      action: PayloadAction<{ date: string; category: string; source: string }>
+      action: PayloadAction<{ category: string; source: string, person: string }>
     ) => {
       state.filters = action.payload;
+    },
+    setResultFilters: (
+      state,
+      action: PayloadAction<{ date: string; category: string; source: string}>
+    ) => {
+      state.resultFilters = action.payload;
     },
   },
 });
 
-export const { setQuery, setFilters } = articleSlice.actions;
+export const { setQuery, setFilters, setResultFilters } = articleSlice.actions;
 export default articleSlice.reducer;

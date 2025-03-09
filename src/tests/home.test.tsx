@@ -1,22 +1,117 @@
-// src/tests/Home.test.tsx
 import { render, screen } from "@testing-library/react";
+import { Provider } from "react-redux";
+import { store } from "../store/store";
+import { BrowserRouter as Router } from "react-router";
+import { vi, Mock } from "vitest";
+import * as reactQuery from "@tanstack/react-query";
 import Home from "../app/Home";
 
-test("renders Home page with Navbar, Filters, Article Cards, and Footer", () => {
-  render(<Home />);
+vi.mock("../components/Navbar", () => ({
+  __esModule: true,
+  default: () => <div data-testid="navbar" />,
+}));
 
-  // Check if Navbar is rendered
-  expect(screen.getByText(/News Aggregator/i)).toBeInTheDocument();
+vi.mock("../components/Footer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="footer" />,
+}));
 
-  // Check if Filters dropdowns are present
-  expect(
-    screen.getByRole("combobox", { name: /Select Category/i })
-  ).toBeInTheDocument();
+vi.mock("../components/Filters", () => ({
+  __esModule: true,
+  default: () => <div data-testid="filters" />,
+}));
 
-  // Check if Footer is present
-  expect(screen.getByText(/News Aggregator/i)).toBeInTheDocument();
+vi.mock("../components/Loader", () => ({
+  __esModule: true,
+  default: () => <div data-testid="loader" />,
+}));
 
-  // Ensure the ArticleCard is rendered (dummy articles will be shown)
-  expect(screen.getByText(/React 18 Released!/i)).toBeInTheDocument();
-  expect(screen.getByText(/TailwindCSS v3 Update/i)).toBeInTheDocument();
+vi.mock("../components/Articles", () => ({
+  __esModule: true,
+  default: () => <div data-testid="articles" />,
+}));
+
+vi.mock("../components/BackToTop", () => ({
+  __esModule: true,
+  default: () => <div data-testid="back-to-top" />,
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  ...vi.importActual("@tanstack/react-query"),
+  useInfiniteQuery: vi.fn(),
+}));
+
+vi.mock("../api/newsAPI", () => ({
+  fetchNewsFromGuardianAPI: vi.fn(),
+  fetchNewsFromNewsAPI: vi.fn(),
+  fetchNewsFromNYTAPI: vi.fn(),
+}));
+
+const mockUseInfiniteQuery = reactQuery.useInfiniteQuery as Mock;
+
+describe("Home component", () => {
+  beforeEach(() => {
+    mockUseInfiniteQuery.mockReturnValue({
+      data: {
+        pages: [
+          {
+            newsAPI: { articles: [] },
+            guardianAPI: { results: [] },
+            nytAPI: { docs: [] },
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      fetchNextPage: vi.fn(),
+      isFetchingNextPage: false,
+      hasNextPage: true,
+    });
+  });
+
+  test("renders Home component with Navbar, Footer, Filters, and BackToTop", () => {
+    render(
+      <Provider store={store}>
+        <Router>
+          <Home />
+        </Router>
+      </Provider>
+    );
+
+    expect(screen.getByTestId("navbar")).toBeInTheDocument();
+    expect(screen.getByTestId("footer")).toBeInTheDocument();
+    expect(screen.getByTestId("filters")).toBeInTheDocument();
+    expect(screen.getByTestId("back-to-top")).toBeInTheDocument();
+  });
+
+  test("displays 'No data found' message when filtered data is empty", () => {
+    mockUseInfiniteQuery.mockReturnValueOnce({
+      data: {
+        pages: [
+          {
+            newsAPI: { articles: [] },
+            guardianAPI: { results: [] },
+            nytAPI: { docs: [] },
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      fetchNextPage: vi.fn(),
+      isFetchingNextPage: false,
+      hasNextPage: true,
+    });
+
+    render(
+      <Provider store={store}>
+        <Router>
+          <Home />
+        </Router>
+      </Provider>
+    );
+
+    expect(
+      screen.getByText(/No data found based on filters selected/i)
+    ).toBeInTheDocument();
+  });
 });

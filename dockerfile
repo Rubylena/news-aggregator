@@ -1,20 +1,17 @@
-# Use an official Node.js runtime as a parent image
 FROM node:22-alpine
 
-# Set the working directory in the container
 WORKDIR /src/app
 
-# Copy the package.json and package-lock.json files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+RUN npm install
 
-# Copy the rest of your application
 COPY . .
 
-# Expose the port that the app will run on
 EXPOSE 3000
 
-# Run the app
+ENV VITE_APP_NEWS_API_KEY=$VITE_APP_NEWS_API_KEY
+ENV VITE_APP_GUARDIAN_API_KEY=$VITE_APP_GUARDIAN_API_KEY
+ENV VITE_APP_NYT_API_KEY=$VITE_APP_NYT_API_KEY
+
 CMD ["npm", "run", "dev"]
