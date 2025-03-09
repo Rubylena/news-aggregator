@@ -63,4 +63,4 @@ After cloning repository and changing directory
 
 You can now use [http://localhost:3000/](http://localhost:3000/) to view the application.
 
-Note: ensure you have docker runnu=ing in your local environment and use bash to run the commands. Also the API keys will be sent across.
+Note: ensure you have docker running in your local environment and use bash to run the commands. Also the API keys will be sent across.
