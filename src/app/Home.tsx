@@ -168,7 +168,7 @@ const Home = () => {
           {isLoading || isFiltering ? (
             <Loader />
           ) : isError ? (
-            <div className="text-center lg:h-88 w-full flex justify-center items-center border">
+            <div className="text-center lg:h-88 w-full flex justify-center items-center">
               <img
                 src="/assets/img/error.webp"
                 alt="Error fetching data"
